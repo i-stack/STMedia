@@ -1,341 +1,333 @@
-# STLocation
+# STMedia
 
-一个基于 CoreLocation 的 Swift Package Manager 位置管理库，提供简洁易用的位置获取、权限管理和地理编码功能。
+一个功能丰富的 iOS 媒体处理 Swift 包，提供图片处理、扫码、截图等核心功能。
 
 ## 功能特性
 
-- 🎯 **单次定位**: 获取当前精确位置
-- 🔄 **持续定位**: 实时位置更新
-- 🔐 **权限管理**: 智能的位置权限请求和状态检查
-- 📍 **地理编码**: 自动将坐标转换为地址信息
-- ⚡ **缓存机制**: 智能位置缓存，提高性能
-- 🛡️ **错误处理**: 完善的错误类型和处理机制
-- 🎛️ **配置灵活**: 多种精度和超时配置选项
-- 🔒 **线程安全**: 使用并发队列确保线程安全
+- 📸 **图片处理**: 支持多种图片格式，提供压缩、裁剪、水印等功能
+- 📱 **扫码功能**: 支持二维码和条形码扫描，提供可自定义的扫描界面
+- 📷 **图片管理**: 相机拍照、相册选择、图片保存等完整流程
+- 🖼️ **截图功能**: 应用截图检测和处理
+- 🎨 **UI 扩展**: 丰富的 UIImage 和 UIView 扩展方法
 
 ## 系统要求
 
 - iOS 13.0+
-- Swift 5.9+
-- Xcode 15.0+
+- Swift 5.0+
+- Xcode 12.0+
 
 ## 安装方式
 
 ### Swift Package Manager
 
-在你的 `Package.swift` 文件中添加依赖：
+在 Xcode 中添加包依赖：
+
+1. 打开 Xcode 项目
+2. 选择 `File` → `Add Package Dependencies...`
+3. 输入仓库地址：`https://github.com/i-stack/STMedia.git`
+4. 选择版本或分支
+5. 点击 `Add Package`
+
+### Package.swift
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/i-stack/STLocation.git", from: "1.0.0")
+    .package(url: "https://github.com/i-stack/STMedia.git", branch: "main")
 ]
 ```
 
-或者在 Xcode 中：
-1. 选择 `File` → `Add Package Dependencies`
-2. 输入仓库 URL: `https://github.com/i-stack/STLocation.git`
-3. 选择版本并添加到你的项目
+## 使用方法
 
-### 导入
+### 1. 图片处理
 
-```swift
-import STLocation
-```
-
-## 权限配置
-
-在 `Info.plist` 中添加位置权限说明：
-
-```xml
-<key>NSLocationWhenInUseUsageDescription</key>
-<string>此应用需要访问您的位置以提供基于位置的服务</string>
-
-<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-<string>此应用需要访问您的位置以提供基于位置的服务</string>
-```
-
-## 基本使用
-
-### 1. 获取当前位置（单次定位）
+#### 基础图片操作
 
 ```swift
-STLocationManager.shared.st_getCurrentLocation { result in
-    switch result {
-    case .success(let locationInfo):
-        print("位置信息: \(locationInfo.formattedAddress)")
-        print("坐标: \(locationInfo.coordinateString)")
-        print("经度: \(locationInfo.longitude)")
-        print("纬度: \(locationInfo.latitude)")
-    case .failure(let error):
-        print("获取位置失败: \(error.localizedDescription)")
-    }
-}
+import STMedia
+
+// 检查图片是否为空
+let isEmpty = UIImage.isEmpty(image)
+
+// 图片压缩
+let compressedImage = image.st_compressImage(quality: 0.8)
+
+// 图片裁剪
+let croppedImage = image.st_cropImage(to: CGRect(x: 0, y: 0, width: 100, height: 100))
+
+// 图片缩放
+let scaledImage = image.st_scaleImage(to: CGSize(width: 200, height: 200))
+
+// 图片旋转
+let rotatedImage = image.st_rotateImage(angle: 90)
 ```
 
-### 2. 请求位置权限
+#### 图片格式转换
 
 ```swift
-// 请求使用期间的位置权限
-STLocationManager.shared.st_requestWhenInUseAuthorization { status in
-    switch status {
-    case .authorizedWhenInUse, .authorizedAlways:
-        print("位置权限已授权")
-        // 现在可以获取位置
-    case .denied, .restricted:
-        print("位置权限被拒绝")
-        // 引导用户到设置页面
-    case .notDetermined:
-        print("位置权限未确定")
-    @unknown default:
-        break
-    }
-}
+// 获取图片格式
+let format = image.st_imageFormat
 
-// 请求始终的位置权限
-STLocationManager.shared.st_requestAlwaysAuthorization { status in
-    // 处理权限状态
-}
+// 转换为指定格式
+let pngData = image.st_convertToPNG()
+let jpegData = image.st_convertToJPEG(quality: 0.8)
 ```
 
-### 3. 检查当前位置权限状态
+#### 水印功能
 
 ```swift
-STLocationManager.shared.st_checkLocationPermission { status in
-    switch status {
-    case .authorizedWhenInUse, .authorizedAlways:
-        print("已有位置权限")
-    case .denied, .restricted:
-        print("位置权限被拒绝")
-    case .notDetermined:
-        print("位置权限未确定")
-    @unknown default:
-        break
-    }
-}
-```
-
-### 4. 使用自定义配置
-
-```swift
-// 高精度配置
-let highAccuracyConfig = STLocationConfig.highAccuracy
-STLocationManager.shared.st_getCurrentLocation(config: highAccuracyConfig) { result in
-    // 处理结果
-}
-
-// 低精度配置（省电）
-let lowAccuracyConfig = STLocationConfig.lowAccuracy
-STLocationManager.shared.st_getCurrentLocation(config: lowAccuracyConfig) { result in
-    // 处理结果
-}
-
-// 自定义配置
-let customConfig = STLocationConfig(
-    desiredAccuracy: kCLLocationAccuracyBest,
-    distanceFilter: 5.0,
-    timeout: 20.0,
-    maximumAge: 180.0
+// 添加文字水印
+let watermarkedImage = image.st_addTextWatermark(
+    text: "STMedia",
+    position: .bottomRight,
+    fontSize: 16,
+    color: .white
 )
-STLocationManager.shared.st_getCurrentLocation(config: customConfig) { result in
-    // 处理结果
-}
+
+// 添加图片水印
+let logoImage = UIImage(named: "logo")
+let finalImage = image.st_addImageWatermark(
+    watermark: logoImage,
+    position: .topLeft,
+    alpha: 0.7
+)
 ```
 
-### 5. 持续位置更新
+### 2. 图片管理
+
+#### 相机拍照
 
 ```swift
-// 开始持续位置更新
-STLocationManager.shared.st_startUpdatingLocation { result in
-    switch result {
-    case .success(let locationInfo):
-        print("位置更新: \(locationInfo.formattedAddress)")
-    case .failure(let error):
-        print("位置更新失败: \(error.localizedDescription)")
-    }
-}
+import STMedia
 
-// 停止位置更新
-STLocationManager.shared.st_stopUpdatingLocation()
-```
-
-### 6. 获取最后已知位置
-
-```swift
-if let lastLocation = STLocationManager.shared.st_getLastKnownLocation() {
-    print("最后位置: \(lastLocation.formattedAddress)")
-    print("时间: \(lastLocation.timestamp)")
-}
-```
-
-### 7. 清除位置缓存
-
-```swift
-STLocationManager.shared.st_clearLocationCache()
-```
-
-## 配置选项
-
-### STLocationConfig
-
-| 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `desiredAccuracy` | `CLLocationAccuracy` | `kCLLocationAccuracyNearestTenMeters` | 期望的定位精度 |
-| `distanceFilter` | `CLLocationDistance` | `10.0` | 位置更新的最小距离（米） |
-| `timeout` | `TimeInterval` | `30.0` | 获取位置的超时时间（秒） |
-| `maximumAge` | `TimeInterval` | `300.0` | 位置缓存的最大有效期（秒） |
-
-### 预设配置
-
-```swift
-// 默认配置
-STLocationConfig.default
-
-// 高精度配置
-STLocationConfig.highAccuracy
-
-// 低精度配置（省电）
-STLocationConfig.lowAccuracy
-```
-
-## 数据结构
-
-### STLocationInfo
-
-位置信息结构体，包含以下属性：
-
-```swift
-public struct STLocationInfo {
-    public let name: String?                    // 地点名称
-    public let country: String?                 // 国家
-    public let latitude: Double                 // 纬度
-    public let longitude: Double                // 经度
-    public let locality: String?                // 城市
-    public let subLocality: String?             // 区域
-    public let thoroughfare: String?            // 街道
-    public let subThoroughfare: String?         // 门牌号
-    public let isoCountryCode: String?          // 国家代码
-    public let administrativeArea: String?      // 省份/州
-    public let postalCode: String?              // 邮编
-    public let timestamp: Date                  // 时间戳
-    
-    // 计算属性
-    public var formattedAddress: String         // 格式化地址
-    public var coordinateString: String         // 坐标字符串
-}
-```
-
-### STLocationError
-
-错误类型枚举：
-
-```swift
-public enum STLocationError: Error {
-    case authorizationDenied        // 权限被拒绝
-    case authorizationRestricted    // 权限受限
-    case locationServicesDisabled   // 位置服务已禁用
-    case timeout                    // 获取位置超时
-    case networkError              // 网络错误
-    case geocodingFailed           // 地理编码失败
-    case unknown(Error)            // 未知错误
-}
-```
-
-## 完整使用示例
-
-```swift
-import STLocation
-
-class LocationViewController: UIViewController {
+class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupLocation()
     }
     
-    private func setupLocation() {
-        // 1. 检查权限状态
-        STLocationManager.shared.st_checkLocationPermission { [weak self] status in
-            switch status {
-            case .authorizedWhenInUse, .authorizedAlways:
-                self?.getCurrentLocation()
-            case .notDetermined:
-                self?.requestLocationPermission()
-            case .denied, .restricted:
-                self?.showPermissionAlert()
-            @unknown default:
-                break
+    @IBAction func takePhoto(_ sender: UIButton) {
+        STImageManager.shared.takePhoto(from: .camera) { [weak self] result in
+            switch result {
+            case .success(let image):
+                // 处理拍摄的图片
+                self?.imageView.image = image
+            case .failure(let error):
+                print("拍照失败: \(error)")
             }
         }
-    }
-    
-    private func requestLocationPermission() {
-        STLocationManager.shared.st_requestWhenInUseAuthorization { [weak self] status in
-            if status == .authorizedWhenInUse {
-                self?.getCurrentLocation()
-            }
-        }
-    }
-    
-    private func getCurrentLocation() {
-        // 使用高精度配置
-        STLocationManager.shared.st_getCurrentLocation(config: .highAccuracy) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let locationInfo):
-                    self?.updateUI(with: locationInfo)
-                case .failure(let error):
-                    self?.showError(error)
-                }
-            }
-        }
-    }
-    
-    private func updateUI(with locationInfo: STLocationInfo) {
-        // 更新界面显示位置信息
-        print("地址: \(locationInfo.formattedAddress)")
-        print("坐标: \(locationInfo.coordinateString)")
-    }
-    
-    private func showError(_ error: STLocationError) {
-        let alert = UIAlertController(title: "位置获取失败", message: error.localizedDescription, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "确定", style: .default))
-        present(alert, animated: true)
-    }
-    
-    private func showPermissionAlert() {
-        let alert = UIAlertController(title: "需要位置权限", message: "请在设置中开启位置权限", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "去设置", style: .default) { _ in
-            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(settingsURL)
-            }
-        })
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
-        present(alert, animated: true)
     }
 }
 ```
 
-## 注意事项
+#### 相册选择
 
-1. **权限处理**: 确保在 Info.plist 中添加相应的权限说明
-2. **线程安全**: 所有回调都在主线程执行，但内部使用并发队列保证线程安全
-3. **电池优化**: 使用低精度配置可以节省电池电量
-4. **缓存机制**: 库会自动缓存位置信息，避免频繁请求
-5. **超时处理**: 设置合适的超时时间，避免长时间等待
+```swift
+@IBAction func selectFromLibrary(_ sender: UIButton) {
+    STImageManager.shared.selectImage(from: .photoLibrary) { [weak self] result in
+        switch result {
+        case .success(let image):
+            // 处理选择的图片
+            self?.imageView.image = image
+        case .failure(let error):
+            print("选择图片失败: \(error)")
+        }
+    }
+}
+```
+
+#### 保存图片到相册
+
+```swift
+STImageManager.shared.saveImageToPhotoLibrary(image) { result in
+    switch result {
+    case .success:
+        print("图片保存成功")
+    case .failure(let error):
+        print("保存失败: \(error)")
+    }
+}
+```
+
+### 3. 扫码功能
+
+#### 基础扫码
+
+```swift
+import STMedia
+
+class ViewController: UIViewController {
+    
+    @IBAction func startScan(_ sender: UIButton) {
+        let scanManager = STScanManager()
+        scanManager.scanType = .STScanTypeQrCode
+        scanManager.presentVC = self
+        
+        scanManager.scanFinishBlock = { [weak self] result in
+            print("扫描结果: \(result)")
+            // 处理扫描结果
+        }
+        
+        scanManager.startScan()
+    }
+}
+```
+
+#### 自定义扫码界面
+
+```swift
+// 创建自定义配置
+var config = STScanViewConfiguration()
+config.scanAreaMargin = 80.0
+config.borderColor = .systemBlue
+config.cornerColor = .systemRed
+config.tipText = "请将二维码放入扫描框内"
+config.tipTextColor = .white
+
+// 创建扫码视图
+let scanView = STScanView(frame: view.bounds, configuration: config)
+view.addSubview(scanView)
+
+// 开始扫描
+scanView.startScanning()
+```
+
+#### 扫码结果处理
+
+```swift
+scanManager.scanFinishBlock = { [weak self] result in
+    DispatchQueue.main.async {
+        // 停止扫描
+        scanManager.stopScan()
+        
+        // 处理不同类型的扫码结果
+        if result.hasPrefix("http") {
+            // 处理 URL
+            self?.openURL(result)
+        } else if result.hasPrefix("tel:") {
+            // 处理电话号码
+            self?.makePhoneCall(result)
+        } else {
+            // 显示普通文本
+            self?.showAlert(message: result)
+        }
+    }
+}
+```
+
+### 4. 截图功能
+
+#### 监听截图事件
+
+```swift
+import STMedia
+
+class ViewController: UIViewController {
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // 监听截图通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(userDidTakeScreenshot),
+            name: UIApplication.userDidTakeScreenshotNotification,
+            object: nil
+        )
+    }
+    
+    @objc func userDidTakeScreenshot() {
+        print("用户截屏了！")
+        
+        // 获取截图
+        if let screenshot = STScreenShot.st_imageWithScreenshot() {
+            // 处理截图
+            handleScreenshot(screenshot)
+        }
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+```
+
+#### 显示截图预览
+
+```swift
+@objc func userDidTakeScreenshot() {
+    // 显示截图预览
+    let screenshotView = STScreenShot.st_showScreenshotImage(rect: CGRect(x: 0, y: 0, width: 200, height: 200))
+    view.addSubview(screenshotView)
+    
+    // 3秒后自动移除
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+        screenshotView.removeFromSuperview()
+    }
+}
+```
+
+### 5. 权限处理
+
+#### 相机权限
+
+```swift
+STImageManager.shared.requestCameraPermission { granted in
+    if granted {
+        print("相机权限已授权")
+    } else {
+        print("相机权限被拒绝")
+        // 引导用户到设置页面
+    }
+}
+```
+
+#### 相册权限
+
+```swift
+STImageManager.shared.requestPhotoLibraryPermission { granted in
+    if granted {
+        print("相册权限已授权")
+    } else {
+        print("相册权限被拒绝")
+    }
+}
+```
+
+## 配置说明
+
+### Info.plist 权限配置
+
+在 `Info.plist` 中添加必要的权限描述：
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>需要访问相机来拍照</string>
+
+<key>NSPhotoLibraryUsageDescription</key>
+<string>需要访问相册来选择图片</string>
+
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>需要访问相册来保存图片</string>
+```
+
+## 依赖项
+
+- `STProjectBase`: 基础工具库
+- `UIKit`: iOS 用户界面框架
+- `Photos`: 相册访问框架
+- `AVFoundation`: 音视频处理框架
 
 ## 许可证
 
-MIT License
+Copyright © 2018 ST. All rights reserved.
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！
+欢迎提交 Issue 和 Pull Request 来改进这个项目。
 
 ## 更新日志
 
 ### 1.0.0
 - 初始版本发布
-- 支持单次定位和持续定位
-- 完善的权限管理
-- 地理编码功能
-- 位置缓存机制
+- 支持图片处理、扫码、截图等核心功能
+- 提供完整的图片管理流程

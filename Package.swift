@@ -4,19 +4,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "STLocation",
+    name: "STMedia",
     platforms: [
         .iOS(.v13)
     ],
     products: [
         .library(
-            name: "STLocation",
-            targets: ["STLocation"]
+            name: "STMedia",
+            targets: ["STMedia"]
         ),
     ],
     targets: [
         .target(
-            name: "STLocation",
+            name: "STMedia",
             path: "Sources"
         ),
     ],
