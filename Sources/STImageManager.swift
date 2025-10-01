@@ -31,15 +31,13 @@ public enum STImageSource {
 }
 
 // MARK: - 统一图片管理器
-/// 统一的图片管理器，整合相机、照片库和图片处理功能
 public class STImageManager: NSObject {
     
     public static let shared = STImageManager()
-    
-    private var configuration: STImageManagerConfiguration = STImageManagerConfiguration()
     private var currentCompletion: STImageManagerCompletion?
     private var imagePickerController: UIImagePickerController?
-    
+    private var configuration: STImageManagerConfiguration = STImageManagerConfiguration()
+
     private override init() {
         super.init()
     }
@@ -49,13 +47,10 @@ public class STImageManager: NSObject {
         imagePickerController = nil
     }
     
-    /// 更新配置
     public func updateConfiguration(_ config: STImageManagerConfiguration) {
         self.configuration = config
     }
-    
-    // MARK: - 主要 API
-    
+        
     /// 选择图片（相机或照片库）
     public func selectImage(from viewController: UIViewController,
                            source: STImageSource = .photoLibrary,
@@ -64,9 +59,7 @@ public class STImageManager: NSObject {
         if let config = configuration {
             self.configuration = config
         }
-        
         self.currentCompletion = completion
-        
         switch source {
         case .camera:
             openCamera(from: viewController)
@@ -80,34 +73,30 @@ public class STImageManager: NSObject {
     }
     
     /// 显示选择器（让用户选择相机或照片库）
+    /// - Parameters:
+    ///   - viewController: 源视图控制器
+    ///   - configuration: 配置选项，包含自定义文本等设置
+    ///   - completion: 完成回调
     public func showImagePicker(from viewController: UIViewController,
                                configuration: STImageManagerConfiguration? = nil,
                                completion: @escaping STImageManagerCompletion) {
         if let config = configuration {
             self.configuration = config
         }
-        
         self.currentCompletion = completion
-        
-        let alert = UIAlertController(title: "选择图片来源", message: nil, preferredStyle: .actionSheet)
-        
-        alert.addAction(UIAlertAction(title: "相机", style: .default) { _ in
+        let alert = UIAlertController(title: self.configuration.pickerTitle, message: nil, preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: self.configuration.cameraButtonTitle, style: .default) { _ in
             self.openCamera(from: viewController)
         })
-        
-        alert.addAction(UIAlertAction(title: "照片库", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: self.configuration.photoLibraryButtonTitle, style: .default) { _ in
             self.openPhotoLibrary(from: viewController)
         })
-        
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in
+        alert.addAction(UIAlertAction(title: self.configuration.cancelButtonTitle, style: .cancel) { _ in
             self.handleError(.userCancelled)
         })
-        
         viewController.present(alert, animated: true)
     }
-    
-    // MARK: - 私有方法
-    
+        
     private func openCamera(from viewController: UIViewController) {
         checkCameraPermission { [weak self] result in
             switch result {
@@ -135,12 +124,10 @@ public class STImageManager: NSObject {
         imagePickerController?.sourceType = sourceType
         imagePickerController?.allowsEditing = configuration.allowsEditing
         imagePickerController?.delegate = self
-        
         if sourceType == .camera {
             imagePickerController?.cameraDevice = configuration.cameraDevice
             imagePickerController?.showsCameraControls = configuration.showsCameraControls
         }
-        
         viewController.present(imagePickerController!, animated: true)
     }
     
@@ -149,7 +136,6 @@ public class STImageManager: NSObject {
             completion(.failure(.deviceNotAvailable(.camera)))
             return
         }
-        
         let status = AVCaptureDevice.authorizationStatus(for: .video)
         switch status {
         case .authorized:
@@ -176,7 +162,6 @@ public class STImageManager: NSObject {
             completion(.failure(.deviceNotAvailable(.photoLibrary)))
             return
         }
-        
         let status = PHPhotoLibrary.authorizationStatus()
         switch status {
         case .authorized:
@@ -211,28 +196,19 @@ public class STImageManager: NSObject {
 extension STImageManager: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         var model = STImageManagerModel()
-        
-        // 设置图片来源
         model.source = picker.sourceType == .camera ? .camera : .photoLibrary
-        
-        // 获取图片
         let imageKey = configuration.allowsEditing ? UIImagePickerController.InfoKey.editedImage : UIImagePickerController.InfoKey.originalImage
         guard let originalImage = info[imageKey] as? UIImage else {
             handleError(.unknown)
             picker.dismiss(animated: true)
             return
         }
-        
         model.originalImage = originalImage
-        
-        // 处理编辑后的图片
         if configuration.allowsEditing, let editedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage {
             model.editedImage = editedImage
         } else {
             model.editedImage = originalImage
         }
-        
-        // 压缩图片
         if let compressedData = UIImage.smartCompress(model.editedImage!, maxFileSize: configuration.maxFileSize) {
             model.imageData = compressedData
             #if DEBUG
@@ -241,8 +217,6 @@ extension STImageManager: UIImagePickerControllerDelegate, UINavigationControlle
         } else {
             model.error = .compressionFailed
         }
-        
-        // 设置文件信息
         if let type = model.editedImage!.getTypeString() {
             model.mimeType = "image/\(type)"
             model.fileName = "photo_\(Date().timeIntervalSince1970).\(type)"
@@ -250,7 +224,6 @@ extension STImageManager: UIImagePickerControllerDelegate, UINavigationControlle
             model.mimeType = "image/\(configuration.imageFormat)"
             model.fileName = "photo_\(Date().timeIntervalSince1970).\(configuration.imageFormat)"
         }
-        
         currentCompletion?(model)
         picker.dismiss(animated: true)
     }
@@ -276,14 +249,30 @@ public struct STImageManagerModel {
     public init() {}
 }
 
+/// STImageManager 配置选项
 public struct STImageManagerConfiguration {
+    /// 是否允许编辑图片，默认为 true
     public var allowsEditing: Bool = true
+    /// 是否显示相机控制界面，默认为 true
     public var showsCameraControls: Bool = true
+    /// 相机设备类型，默认为后置摄像头
     public var cameraDevice: UIImagePickerController.CameraDevice = .rear
-    public var maxFileSize: Int = 300 // KB
+    /// 最大文件大小（KB），默认为 300KB
+    public var maxFileSize: Int = 300
+    /// 图片格式，默认为 "jpeg"
     public var imageFormat: String = "jpeg"
+    /// 压缩质量，范围 0.0-1.0，默认为 0.8
     public var compressionQuality: CGFloat = 0.8
+    /// 图片选择器弹窗标题，默认为 "选择图片来源"
+    public var pickerTitle: String = "选择图片来源"
+    /// 相机按钮文本，默认为 "相机"
+    public var cameraButtonTitle: String = "相机"
+    /// 照片库按钮文本，默认为 "照片库"
+    public var photoLibraryButtonTitle: String = "照片库"
+    /// 取消按钮文本，默认为 "取消"
+    public var cancelButtonTitle: String = "取消"
     
+    /// 初始化配置，使用默认值
     public init() {}
 }
 
@@ -314,7 +303,6 @@ public typealias STImageManagerCompletion = (STImageManagerModel) -> Void
 
 // MARK: - 上传能力
 public extension STImageManager {
-    /// 通过 STImageManagerModel 上传图片
     func uploadImage(model: STImageManagerModel,
                      toURL urlString: String,
                      fieldName: String = "image",
@@ -335,7 +323,6 @@ public extension STImageManager {
                completion: completion)
     }
 
-    /// 直接通过 data 上传图片
     func upload(data: Data,
                 fileName: String,
                 mimeType: String,
