@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "STMedia",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v16)
     ],
     products: [
         .library(
@@ -14,10 +14,21 @@ let package = Package(
             targets: ["STMedia"]
         ),
     ],
+    dependencies: [
+        // 发布时改为远程仓库：
+        // .package(url: "https://github.com/i-stack/STBaseProject.git", from: "1.6.0")
+        .package(name: "STBaseProject", path: "../STBaseProject")
+    ],
     targets: [
         .target(
             name: "STMedia",
-            path: "Sources"
+            dependencies: [
+                .product(name: "STBaseProject", package: "STBaseProject")
+            ],
+            path: "Sources/STMedia",
+            resources: [
+                .process("PrivacyInfo.xcprivacy")
+            ]
         ),
     ],
     swiftLanguageVersions: [.v5]
